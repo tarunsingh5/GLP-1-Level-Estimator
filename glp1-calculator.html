@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GLP-1 Level Estimator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-900 font-sans p-4 md:p-8">
+    <div class="max-w-5xl mx-auto space-y-6">
+        
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+                <h1 class="text-3xl font-bold tracking-tight text-slate-900 flex items-center gap-3">
+                    <svg class="text-sky-500 w-8 h-8" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                    GLP-1 Level Estimator
+                </h1>
+                <p class="text-slate-500 mt-1 flex items-center gap-2">
+                    Track and compare half-life elimination curves for different medications.
+                </p>
+            </div>
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
+                <div class="p-3 bg-sky-50 rounded-xl">
+                    <svg class="text-sky-500 w-6 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 2 4 4"/><path d="m17 7 3-3"/><path d="M19 9 8.7 19.3c-1 1-2.5 1-3.4 0l-.6-.6c-1-1-1-2.4 0-3.4L15 5"/><path d="m9 11 4 4"/><path d="m5 19-3 3"/><path d="m14 4 6 6"/></svg>
+                </div>
+                <div>
+                    <div class="text-sm text-slate-500 font-medium mb-1">Estimated Current Level</div>
+                    <div id="currentTotalsContainer" class="flex gap-4 min-h-[32px] items-center">
+                        <div class="text-xl font-bold text-slate-400">0.00 mg</div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Left Column: Form & History -->
+            <div class="lg:col-span-1 space-y-6">
+                
+                <!-- Add Dose Card -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+                    <h2 class="text-lg font-semibold flex items-center gap-2 mb-4">
+                        <svg class="w-5 h-5 text-sky-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        Log a Dose
+                    </h2>
+                    <form id="addDoseForm" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Medication Profile</label>
+                            <select id="medSelect" class="w-full rounded-xl border border-slate-300 p-2.5 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-all">
+                                <!-- Options populated by JS -->
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Dose Amount (mg)</label>
+                            <div class="space-y-2">
+                                <input type="number" id="doseAmount" step="0.1" min="0" class="w-full rounded-xl border border-slate-300 p-2.5 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-all" required />
+                                <div id="doseButtons" class="flex flex-wrap gap-2">
+                                    <!-- Buttons populated by JS -->
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1 flex items-center gap-1">
+                                    <svg class="w-3 h-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg> 
+                                    Date
+                                </label>
+                                <input type="date" id="doseDate" required class="w-full rounded-xl border border-slate-300 p-2 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-all text-sm" />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1 flex items-center gap-1">
+                                    <svg class="w-3 h-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                                    Time
+                                </label>
+                                <input type="time" id="doseTime" required value="08:00" class="w-full rounded-xl border border-slate-300 p-2 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-all text-sm" />
+                            </div>
+                        </div>
+
+                        <button type="submit" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-medium py-2.5 rounded-xl transition-colors flex justify-center items-center gap-2 mt-2">
+                            <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                            Add Dose
+                        </button>
+                    </form>
+                </div>
+
+                <!-- History Card -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+                    <h2 class="text-lg font-semibold mb-4">Injection History</h2>
+                    <div id="historyContainer">
+                        <div class="text-center py-6 text-slate-400">
+                            <svg class="w-8 h-8 mx-auto mb-2 opacity-20" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 2 4 4"/><path d="m17 7 3-3"/><path d="M19 9 8.7 19.3c-1 1-2.5 1-3.4 0l-.6-.6c-1-1-1-2.4 0-3.4L15 5"/><path d="m9 11 4 4"/><path d="m5 19-3 3"/><path d="m14 4 6 6"/></svg>
+                            <p class="text-sm">No doses logged yet.</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right Column: Chart -->
+            <div class="lg:col-span-2 space-y-6">
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-lg font-semibold flex items-center gap-2">
+                            <svg class="w-5 h-5 text-sky-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                            Active Level Tracking
+                        </h2>
+                    </div>
+                    
+                    <div id="chartContainer">
+                        <div class="h-64 flex items-center justify-center border-2 border-dashed border-slate-200 rounded-xl bg-slate-50">
+                            <p class="text-slate-400 text-sm flex items-center">
+                                <svg class="w-4 h-4 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                                Add a dose to see the projection chart
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 bg-blue-50 border border-blue-100 rounded-xl p-4 flex gap-3 text-sm text-blue-800 leading-relaxed">
+                        <svg class="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                        <p>
+                            <strong>Disclaimer:</strong> This tool provides a mathematical estimation based on general drug half-lives. You can log hypothetical doses of different medications on the same days to visualize how their half-life curves compare. <strong>Do not use this for medical decisions.</strong>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // Data Models & Configuration
+        const GLP1_MEDS = {
+            tirzepatide: {
+                id: 'tirzepatide',
+                name: 'Zepbound / Mounjaro',
+                molecule: 'Tirzepatide',
+                halfLife: 120, // 5 days
+                doses: [2.5, 5.0, 7.5, 10.0, 12.5, 15.0],
+                color: '#0ea5e9' // sky-500
+            },
+            semaglutide: {
+                id: 'semaglutide',
+                name: 'Wegovy / Ozempic',
+                molecule: 'Semaglutide',
+                halfLife: 168, // 7 days
+                doses: [0.25, 0.5, 1.0, 1.7, 2.0, 2.4],
+                color: '#8b5cf6' // violet-500
+            },
+            liraglutide: {
+                id: 'liraglutide',
+                name: 'Saxenda / Victoza',
+                molecule: 'Liraglutide',
+                halfLife: 13, // 13 hours
+                doses: [0.6, 1.2, 1.8, 2.4, 3.0],
+                color: '#f59e0b' // amber-500
+            }
+        };
+
+        // State
+        let doses = [];
+        let selectedMed = 'tirzepatide';
+        let currentTime = new Date();
+
+        // DOM Elements
+        const medSelect = document.getElementById('medSelect');
+        const doseAmountInput = document.getElementById('doseAmount');
+        const doseButtonsContainer = document.getElementById('doseButtons');
+        const doseDateInput = document.getElementById('doseDate');
+        const doseTimeInput = document.getElementById('doseTime');
+        const addDoseForm = document.getElementById('addDoseForm');
+        const historyContainer = document.getElementById('historyContainer');
+        const currentTotalsContainer = document.getElementById('currentTotalsContainer');
+        const chartContainer = document.getElementById('chartContainer');
+
+        // Initialization
+        function init() {
+            // Set date to today
+            const today = new Date();
+            doseDateInput.value = today.toISOString().split('T')[0];
+
+            // Populate Medication Dropdown
+            Object.values(GLP1_MEDS).forEach(med => {
+                const option = document.createElement('option');
+                option.value = med.id;
+                option.textContent = med.name;
+                medSelect.appendChild(option);
+            });
+
+            // Set initial state
+            updateDoseAmountUI();
+
+            // Event Listeners
+            medSelect.addEventListener('change', (e) => {
+                selectedMed = e.target.value;
+                updateDoseAmountUI();
+            });
+
+            addDoseForm.addEventListener('submit', handleAddDose);
+
+            // Timer to keep 'current time' fresh every minute
+            setInterval(() => {
+                currentTime = new Date();
+                renderTotals();
+                renderChart();
+            }, 60000);
+        }
+
+        function updateDoseAmountUI() {
+            const med = GLP1_MEDS[selectedMed];
+            doseAmountInput.value = med.doses[0];
+            
+            doseButtonsContainer.innerHTML = '';
+            med.doses.forEach(amount => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = "px-2.5 py-1 text-xs rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 transition-colors";
+                btn.textContent = `${amount} mg`;
+                btn.onclick = () => { doseAmountInput.value = amount; };
+                doseButtonsContainer.appendChild(btn);
+            });
+        }
+
+        function handleAddDose(e) {
+            e.preventDefault();
+            const date = doseDateInput.value;
+            const time = doseTimeInput.value;
+            const amount = doseAmountInput.value;
+
+            if (!date || !time || !amount) return;
+
+            const doseDateTime = new Date(`${date}T${time}`);
+            
+            const newDose = {
+                id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2),
+                medId: selectedMed,
+                amount: parseFloat(amount),
+                timestamp: doseDateTime.getTime(),
+                dateStr: doseDateTime.toLocaleString()
+            };
+
+            doses.push(newDose);
+            doses.sort((a, b) => a.timestamp - b.timestamp);
+            
+            renderAll();
+        }
+
+        window.handleDeleteDose = function(id) {
+            doses = doses.filter(dose => dose.id !== id);
+            renderAll();
+        };
+
+        // Math Logic
+        function calculateRemaining(doseAmount, doseTimestamp, targetTimestamp, halfLifeHours) {
+            const hoursElapsed = (targetTimestamp - doseTimestamp) / (1000 * 60 * 60);
+            if (hoursElapsed < 0) return 0; // Future dose
+            return doseAmount * Math.pow(0.5, hoursElapsed / halfLifeHours);
+        }
+
+        function renderAll() {
+            renderTotals();
+            renderHistory();
+            renderChart();
+        }
+
+        // UI Renderers
+        function renderTotals() {
+            if (doses.length === 0) {
+                currentTotalsContainer.innerHTML = `<div class="text-xl font-bold text-slate-400">0.00 mg</div>`;
+                return;
+            }
+
+            const now = currentTime.getTime();
+            const totals = {};
+            
+            doses.forEach(dose => {
+                const med = GLP1_MEDS[dose.medId];
+                if (!totals[dose.medId]) totals[dose.medId] = 0;
+                totals[dose.medId] += calculateRemaining(dose.amount, dose.timestamp, now, med.halfLife);
+            });
+
+            currentTotalsContainer.innerHTML = Object.entries(totals).map(([medId, total]) => `
+                <div class="flex flex-col">
+                    <span class="text-xs font-bold" style="color: ${GLP1_MEDS[medId].color}">${GLP1_MEDS[medId].molecule}</span>
+                    <span class="text-xl font-bold text-slate-900">${total.toFixed(2)} <span class="text-sm text-slate-500 font-normal">mg</span></span>
+                </div>
+            `).join('');
+        }
+
+        function renderHistory() {
+            if (doses.length === 0) {
+                historyContainer.innerHTML = `
+                    <div class="text-center py-6 text-slate-400">
+                        <svg class="w-8 h-8 mx-auto mb-2 opacity-20" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 2 4 4"/><path d="m17 7 3-3"/><path d="M19 9 8.7 19.3c-1 1-2.5 1-3.4 0l-.6-.6c-1-1-1-2.4 0-3.4L15 5"/><path d="m9 11 4 4"/><path d="m5 19-3 3"/><path d="m14 4 6 6"/></svg>
+                        <p class="text-sm">No doses logged yet.</p>
+                    </div>`;
+                return;
+            }
+
+            const historyList = [...doses].reverse().map(dose => `
+                <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="font-semibold text-slate-800">${dose.amount} mg</span>
+                            <span class="text-xs font-bold px-2 py-0.5 rounded-full bg-white border" style="color: ${GLP1_MEDS[dose.medId].color}; border-color: ${GLP1_MEDS[dose.medId].color}">
+                                ${GLP1_MEDS[dose.medId].molecule}
+                            </span>
+                        </div>
+                        <div class="text-xs text-slate-500 mt-1">${dose.dateStr}</div>
+                    </div>
+                    <button onclick="handleDeleteDose('${dose.id}')" class="text-slate-400 hover:text-red-500 p-2 hover:bg-red-50 rounded-lg transition-colors" title="Remove dose">
+                        <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                    </button>
+                </div>
+            `).join('');
+
+            historyContainer.innerHTML = `<div class="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">${historyList}</div>`;
+        }
+
+        function renderChart() {
+            if (doses.length === 0) {
+                chartContainer.innerHTML = `
+                    <div class="h-64 flex items-center justify-center border-2 border-dashed border-slate-200 rounded-xl bg-slate-50">
+                        <p class="text-slate-400 text-sm flex items-center">
+                            <svg class="w-4 h-4 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                            Add a dose to see the projection chart
+                        </p>
+                    </div>`;
+                return;
+            }
+
+            // Calculate chart data
+            const now = currentTime.getTime();
+            const firstDoseTime = doses[0].timestamp;
+            const lastDoseTime = Math.max(doses[doses.length - 1].timestamp, now);
+
+            const startTime = firstDoseTime - (3 * 24 * 60 * 60 * 1000); // 3 days before first
+            const endTime = lastDoseTime + (14 * 24 * 60 * 60 * 1000); // 14 days after last
+
+            const points = [];
+            const stepHours = 12; // Calculate every 12 hours
+            
+            for (let t = startTime; t <= endTime; t += stepHours * 60 * 60 * 1000) {
+                let levels = {};
+                doses.forEach(dose => {
+                    const med = GLP1_MEDS[dose.medId];
+                    if (!levels[dose.medId]) levels[dose.medId] = 0;
+                    levels[dose.medId] += calculateRemaining(dose.amount, dose.timestamp, t, med.halfLife);
+                });
+                points.push({ timestamp: t, levels: levels });
+            }
+
+            // SVG Settings
+            const width = 800;
+            const height = 300;
+            const padding = 40;
+
+            const activeMeds = [...new Set(doses.map(d => d.medId))];
+            
+            // Find max level for Y-axis scale (minimum 5)
+            let maxLevel = 5;
+            points.forEach(p => {
+                Object.values(p.levels).forEach(level => {
+                    if (level > maxLevel) maxLevel = level;
+                });
+            });
+
+            const getX = (t) => padding + ((t - startTime) / (endTime - startTime)) * (width - padding * 2);
+            const getY = (l) => height - padding - (l / maxLevel) * (height - padding * 2);
+            const nowX = getX(now);
+
+            // Build Legend HTML
+            const legendHTML = activeMeds.map(medId => `
+                <div class="flex items-center gap-2 text-sm font-medium" style="color: ${GLP1_MEDS[medId].color}">
+                    <div class="w-3 h-3 rounded-full" style="background-color: ${GLP1_MEDS[medId].color}"></div>
+                    ${GLP1_MEDS[medId].molecule}
+                </div>
+            `).join('');
+
+            // Build Y-axis Grid Lines
+            let yAxisHTML = '';
+            [0, 0.25, 0.5, 0.75, 1].forEach(ratio => {
+                const y = height - padding - ratio * (height - padding * 2);
+                const val = (ratio * maxLevel).toFixed(1);
+                yAxisHTML += `
+                    <g>
+                        <line x1="${padding}" y1="${y}" x2="${width - padding}" y2="${y}" stroke="#e2e8f0" stroke-dasharray="4 4" />
+                        <text x="${padding - 10}" y="${y + 4}" text-anchor="end" font-size="10" fill="#64748b">${val}mg</text>
+                    </g>
+                `;
+            });
+
+            // Build Path Elements for each Med
+            let pathsHTML = '';
+            activeMeds.forEach(medId => {
+                const med = GLP1_MEDS[medId];
+                const pathData = points.map((d, i) => `${i === 0 ? 'M' : 'L'} ${getX(d.timestamp)} ${getY(d.levels[medId] || 0)}`).join(' ');
+                const areaData = `${pathData} L ${getX(points[points.length - 1].timestamp)} ${height - padding} L ${getX(startTime)} ${height - padding} Z`;
+
+                pathsHTML += `
+                    <g>
+                        <path d="${areaData}" fill="${med.color}" opacity="0.1" />
+                        <path d="${pathData}" fill="none" stroke="${med.color}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+                    </g>
+                `;
+            });
+
+            // Build Current Time Indicator
+            let nowIndicatorHTML = '';
+            if (nowX >= padding && nowX <= width - padding) {
+                nowIndicatorHTML = `
+                    <g>
+                        <line x1="${nowX}" y1="${padding}" x2="${nowX}" y2="${height - padding}" stroke="#ef4444" stroke-width="2" stroke-dasharray="4 4" />
+                        <rect x="${nowX - 25}" y="${padding - 20}" width="50" height="20" rx="4" fill="#ef4444" />
+                        <text x="${nowX}" y="${padding - 6}" text-anchor="middle" font-size="10" fill="white" font-weight="bold">NOW</text>
+                    </g>
+                `;
+            }
+
+            // Build Dose Points (Circles)
+            let dosePointsHTML = '';
+            doses.forEach(dose => {
+                const med = GLP1_MEDS[dose.medId];
+                const x = getX(dose.timestamp);
+                if (x < padding || x > width - padding) return;
+                
+                let levelAtDose = 0;
+                doses.forEach(d => {
+                    if (d.medId === dose.medId && d.timestamp <= dose.timestamp) {
+                        levelAtDose += calculateRemaining(d.amount, d.timestamp, dose.timestamp, med.halfLife);
+                    }
+                });
+
+                const y = getY(levelAtDose);
+                dosePointsHTML += `<circle cx="${x}" cy="${y}" r="5" fill="${med.color}" stroke="white" stroke-width="2" />`;
+            });
+
+            // Assemble Final SVG
+            chartContainer.innerHTML = `
+                <div class="w-full overflow-x-auto relative">
+                    <div class="flex flex-wrap gap-4 justify-center mb-4">
+                        ${legendHTML}
+                    </div>
+                    <svg viewBox="0 0 ${width} ${height}" class="w-full h-auto min-w-[500px]">
+                        ${yAxisHTML}
+                        ${pathsHTML}
+                        ${nowIndicatorHTML}
+                        ${dosePointsHTML}
+                    </svg>
+                    <div class="flex justify-between px-10 mt-2 text-xs text-slate-500">
+                        <span>${new Date(startTime).toLocaleDateString()}</span>
+                        <span>${new Date(endTime).toLocaleDateString()}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Boot up
+        init();
+    </script>
+</body>
+</html>
